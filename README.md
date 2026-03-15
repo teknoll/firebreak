@@ -1,22 +1,59 @@
 # Firebreak
 
-A framework for structured AI-assisted software development using Claude Code. Context assets (instruction files, skills, hooks, agents, docs) and a spec-driven development lifecycle (SDL) form a pipeline for higher-quality agentic coding — preventing failure propagation through agent isolation and deterministic quality gates.
+**AI coding agents produce worse code than humans.** AI-generated PRs contain 1.7x more issues and 1.57x more security vulnerabilities than human-written PRs. AI-assisted development correlates with doubled code churn, ~8x growth in duplicated code blocks, and a 60% collapse in refactoring activity. The most dangerous failure mode — code that runs but produces wrong results — is increasing.
 
-Everything here is built with Claude Code, guided by itself. The context assets teach the agent how to create and maintain context assets — the project bootstraps itself.
-
-## What This Project Does
-
-Most teams treat AI coding assistants as autocomplete — write a prompt, get code, fix what's broken. This project takes a different approach: **front-load human judgment into structured artifacts before agents write any code**, then constrain agents to implement against well-defined criteria with deterministic verification gates.
-
-A core design principle is **context and persona isolation between agents**. When the same agent designs tests and writes the implementation, its tests tend to validate its own reasoning rather than the spec's intent — the agent confirms its own assumptions. By using separate agents with independent context for test authoring, implementation, and review, correlated failures are structurally reduced. Each agent can only see what it needs, and no agent reviews its own work. This relies on Claude Code's agent teams functionality, which — despite being experimental — provides the multi-agent orchestration with distinct personas and isolated context that this architecture requires.
-
-The result is a pipeline that moves from spec to PR with measurable quality checkpoints at every stage:
+Most teams try to fix this with post-implementation gates: tests, linting, code review. Firebreak takes a different approach: **front-load human judgment into structured artifacts before agents write any code**, then constrain agents to implement against well-defined criteria with deterministic verification gates. Prevention is less costly than repair.
 
 ```
-Spec → Review → Breakdown → Test Creation → Test Review → Implementation → Verification → PR
+Spec ─► Review ─► Breakdown ─► Test Creation ─► Test Review ─► Implementation ─► Verification ─► PR
+         ▲                          ▲                ▲                                  ▲
+     council +               context-independent   pipeline-         deterministic checks +
+     agentic review          test-writing agents   blocking          mutation testing +
+                                                   gate              test immutability
 ```
+
+A core design principle is **context and persona isolation between agents**. When the same agent designs tests and writes the implementation, its tests tend to validate its own reasoning rather than the spec's intent. By using separate agents with independent context for test authoring, implementation, and review, correlated failures are structurally reduced. Each agent can only see what it needs, and no agent reviews its own work.
+
+## Status
+
+| Layer | Status | Description |
+|-------|--------|-------------|
+| Context Asset Framework | **Working** | Authoring guidelines, progressive disclosure, skills, hooks, docs |
+| SDL Workflow | **Working** | `/spec`, `/spec-review`, `/breakdown`, `/implement` with deterministic gates |
+| Dispatch Pipeline | **In testing** | Phase 1 (pipeline core) under active testing against real projects |
 
 The project has three layers, each built using the one before it. The authoring framework produced the SDL workflow. The SDL workflow produced Dispatch's first phase. As Dispatch matures, future phases will be implemented using the updated pipeline — the process bootstraps itself up the complexity ladder.
+
+## Quick Start
+
+Copy the context assets to your Claude Code configuration:
+
+```bash
+cp -r home/.claude/* ~/.claude/
+```
+
+### Context Asset Authoring (works in any project)
+
+Even without the SDL workflow, Firebreak includes a research-based prompt engineering framework for writing better context assets — CLAUDE.md files, agent definitions, skills, hooks, and rules. It applies findings from empirical research on instruction density, context pollution, and progressive disclosure to help you write context assets that produce measurably better agent behavior.
+
+Invoke it with `/context-asset-authoring`, or just start talking about creating or improving context assets — "help me write a CLAUDE.md", "create a new skill", "improve my agent definition." The skill loads detailed, research-backed guidelines automatically.
+
+### SDL Workflow (for feature development)
+
+The spec-driven development lifecycle uses four slash commands, each advancing through a verification gate before the next stage can begin:
+
+| Command | What it does | What it produces |
+|---------|-------------|-----------------|
+| `/spec` | Co-author a feature specification with structured sections, acceptance criteria, and a testing strategy | A spec document in `ai-docs/` |
+| `/spec-review` | Run council review (architect, security, guardian, advocate, analyst perspectives) | Review findings with pass/fail determination |
+| `/breakdown` | Compile the reviewed spec into sized, wave-assigned implementation tasks | Individual task files and a task manifest |
+| `/implement` | Execute tasks with parallel agent teams, wave-based sequencing, and per-wave verification | Implemented code with passing tests |
+
+You can invoke these directly with the slash commands, or use natural language — talking about designing a new feature, writing a specification, reviewing a spec, breaking down tasks, or implementing a feature will trigger the appropriate skill automatically.
+
+If you find that a natural language phrase you expected to trigger a skill didn't, [please report it](https://github.com/teknoll/firebreak/issues) — we're actively tuning trigger coverage based on how different users talk to Claude Code.
+
+## How It Works
 
 ### 1. Context Asset Authoring Framework
 
@@ -28,7 +65,7 @@ The guidelines live in `home/.claude/docs/context-assets/` as leaf documents (on
 
 ### 2. SDL Workflow: Spec-Driven Development Lifecycle
 
-A 4-stage interactive pipeline: **Spec → Review → Breakdown → Implement**. Each stage has a dedicated skill (`/spec`, `/spec-review`, `/breakdown`, `/implement`), deterministic verification gates (shell scripts), and structured artifact output.
+A 4-stage interactive pipeline: **Spec → Review → Breakdown → Implement**. Each stage has a dedicated skill, deterministic verification gates (shell scripts), and structured artifact output.
 
 Key design decisions, informed by [research](research.md):
 - **Deterministic gates over AI self-review** — verification value comes from tests, linters, and schema checks, not from an AI re-reading its own output
@@ -123,6 +160,13 @@ See [research.md](research.md) for the full analysis with citations and methodol
 ## Security
 
 The `.claude/` directory and `CLAUDE.md` files are instruction files — they influence agent behavior. Treat them the same way you treat code: review `.claude/` contents in repositories you didn't author, and scrutinize `.claude/` changes in pull requests just as carefully as code changes. These files are a documented prompt injection vector.
+
+## Feedback
+
+This project is under active development and testing. If you try it out, find issues, or have ideas:
+
+- [Open an issue](https://github.com/teknoll/firebreak/issues) with bug reports, feature suggestions, or questions
+- If you run the SDL workflow on your own project, I'd like to hear how it went — what worked, what didn't, and where the friction was
 
 ## License
 
