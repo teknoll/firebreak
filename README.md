@@ -38,18 +38,20 @@ Even without the SDL workflow, Firebreak includes a research-based prompt engine
 
 Invoke it with `/context-asset-authoring`, or just start talking about creating or improving context assets — "help me write a CLAUDE.md", "create a new skill", "improve my agent definition." The skill loads detailed, research-backed guidelines automatically.
 
-### SDL Workflow (for feature development)
+### SDL Workflow
 
-The spec-driven development lifecycle uses four slash commands, each advancing through a verification gate before the next stage can begin:
+The spec-driven development lifecycle applies to any code change where correctness and maintainability matter — new features, bug fixes, refactoring. A bug fix is a spec with a root cause analysis, a test plan review asking "were the tests wrong or missing?", and a constrained implementation. The stages are the same; the scope at each stage is smaller.
+
+Four slash commands, each advancing through a verification gate before the next stage can begin:
 
 | Command | What it does | What it produces |
 |---------|-------------|-----------------|
-| `/spec` | Co-author a feature specification with structured sections, acceptance criteria, and a testing strategy | A spec document in `ai-docs/` |
+| `/spec` | Co-author a specification with structured sections, acceptance criteria, and a testing strategy | A spec document in `ai-docs/` |
 | `/spec-review` | Run council review (architect, security, guardian, advocate, analyst perspectives) | Review findings with pass/fail determination |
 | `/breakdown` | Compile the reviewed spec into sized, wave-assigned implementation tasks | Individual task files and a task manifest |
 | `/implement` | Execute tasks with parallel agent teams, wave-based sequencing, and per-wave verification | Implemented code with passing tests |
 
-You can invoke these directly with the slash commands, or use natural language — talking about designing a new feature, writing a specification, reviewing a spec, breaking down tasks, or implementing a feature will trigger the appropriate skill automatically.
+You can invoke these directly with the slash commands, or use natural language — talking about designing a new feature, fixing a bug, writing a specification, reviewing a spec, breaking down tasks, or implementing a change will trigger the appropriate skill automatically.
 
 If you find that a natural language phrase you expected to trigger a skill didn't, [please report it](https://github.com/teknoll/firebreak/issues) — we're actively tuning trigger coverage based on how different users talk to Claude Code.
 

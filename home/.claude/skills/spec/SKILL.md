@@ -1,8 +1,9 @@
 ---
 description: >-
   Spec-driven feature or project specification. Use when designing a new
-  feature, planning a project, or co-authoring a specification document.
-  Guides iterative spec creation through structured sections.
+  feature, planning a project, fixing a bug, investigating an issue,
+  planning a fix, or co-authoring a specification document. Guides
+  iterative spec creation through structured sections.
 argument-hint: "[feature-name]"
 ---
 
