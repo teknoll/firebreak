@@ -70,6 +70,41 @@ Stage 3 guarantees non-overlapping file scopes within the same wave. Concurrent-
 
 ---
 
+## Per-Task Readiness Check
+
+Before writing code, each implementation agent performs a lightweight readiness check covering only what couldn't be verified at breakdown time:
+
+1. **Prior-wave files exist**: Every file referenced in the task's interface contracts that was created by a prior wave (not pre-existing) is present.
+2. **Tests compile**: For implementation tasks, the paired test task's tests compile (they should fail, but they should compile). Test tasks skip this item — they are creating the tests, not consuming them.
+3. **Build succeeds**: The repo builds/compiles successfully in its current state.
+4. **Contract staleness check**: When interface contracts reference a file modified by a prior wave (detectable from git diff between baseline and current state), re-read the file and verify the specific conventions cited in the contracts still hold. This is a targeted check of specific claims, not a full codebase survey.
+
+If any check fails, the agent reports the specific mismatch without attempting implementation. This saves token spend and gives the team lead a precise failure to diagnose.
+
+**Sequencing**: The inter-wave regression check (below) runs between waves as a wave-advancement gate. The readiness check runs per-task within a wave as a pre-implementation gate. Sequence: Wave N completes → baseline regression check → Wave N+1 starts → each task in N+1 runs readiness check before coding.
+
+---
+
+## Inter-Wave Baseline-Snapshot Regression Check
+
+The baseline is the set of tests that pass when wave execution begins. After each wave, the baseline tests must still pass. Any baseline test that now fails is a regression — the wave is not advanced until it's resolved.
+
+### Baseline capture
+
+Before Wave 1 starts, run the full test suite and capture results to `ai-docs/<feature>/baseline-snapshot.json` — a list of test identifiers (file path + test name) with pass/fail status. Only passing tests enter the baseline. Tests already failing are excluded automatically.
+
+The baseline is stored as a file so interrupted sessions can resume with the correct baseline.
+
+### Inter-wave check
+
+After each wave completes and before the next wave starts, run the full test suite and compare results against the baseline snapshot. Any test that was "pass" in the baseline and is now "fail" is a regression. On failure, the wave is not advanced — the team lead diagnoses the regression and either fixes it or parks the feature.
+
+### Final verification
+
+After the last wave, run the full test suite — all tests, not just the baseline. At this point, every test (including all newly-created tests from test-writing waves and all diagnostic tests from corrective workflows) should pass. Any failure here means the feature is not complete.
+
+---
+
 ## TaskCompleted Hook
 
 Configure a `TaskCompleted` hook in user-global settings (`~/.claude/settings.json`). The hook fires on every `TaskCompleted` event.

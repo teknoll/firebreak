@@ -114,6 +114,125 @@ else
   not_ok "valid task set with full AC coverage passes without false rejections" "rc=$RC"
 fi
 
+# --- Test 10: corrective category passes with test-only AC coverage ---
+# AC-02 is covered only by a test task; corrective category should allow this.
+STDOUT=$(bash "$GATE" "$FIXTURES/corrective/corrective-spec.md" "$FIXTURES/corrective/" 2>/tmp/tr-stderr)
+RC=$?
+STDERR=$(cat /tmp/tr-stderr)
+if [ $RC -eq 0 ] && echo "$STDOUT" | grep -q '"result"'; then
+  ok "corrective category passes with test-only AC coverage"
+else
+  not_ok "corrective category passes with test-only AC coverage" "rc=$RC stdout=$STDOUT stderr=$STDERR"
+fi
+
+# --- Test 11: corrective category rejects AC covered by neither ---
+# Remove AC-02 from task-01's covers inline so AC-02 has no coverage at all.
+TMPDIR_T11="$(mktemp -d)"
+cp "$FIXTURES/corrective/task-02-impl-fix.md" "$TMPDIR_T11/"
+cp "$FIXTURES/corrective/task.json" "$TMPDIR_T11/"
+# Write task-01 with AC-02 removed from covers
+cat > "$TMPDIR_T11/task-01-test-fix.md" <<'TASKEOF'
+---
+id: T-01
+type: test
+wave: 1
+covers: ["AC-01"]
+files_to_create: [tests/regression/test-fix.sh]
+completion_gate: "regression tests compile and fail"
+---
+
+# Task 01: Regression Tests for Corrective Fix
+
+Write regression tests covering AC-01 only (AC-02 removed to trigger failure).
+TASKEOF
+STDOUT=$(bash "$GATE" "$FIXTURES/corrective/corrective-spec.md" "$TMPDIR_T11/" 2>/tmp/tr-stderr)
+RC=$?
+STDERR=$(cat /tmp/tr-stderr)
+rm -rf "$TMPDIR_T11"
+if [ $RC -eq 2 ] && echo "$STDERR" | grep -qi "AC-02"; then
+  ok "corrective category rejects AC covered by neither test nor impl"
+else
+  not_ok "corrective category rejects AC covered by neither test nor impl" "rc=$RC stderr=$STDERR"
+fi
+
+# --- Test 12: testing-infrastructure passes with test-only ACs ---
+# AC-01 is covered only by a test task; testing-infrastructure category should allow this.
+STDOUT=$(bash "$GATE" "$FIXTURES/testing-infra/testing-infra-spec.md" "$FIXTURES/testing-infra/" 2>/tmp/tr-stderr)
+RC=$?
+STDERR=$(cat /tmp/tr-stderr)
+if [ $RC -eq 0 ] && echo "$STDOUT" | grep -q '"result"'; then
+  ok "testing-infrastructure category passes with test-only ACs"
+else
+  not_ok "testing-infrastructure category passes with test-only ACs" "rc=$RC stdout=$STDOUT stderr=$STDERR"
+fi
+
+# --- Test 13: feature category rejects test-only AC ---
+# Use testing-infra fixtures but override task.json with category "feature".
+TMPDIR_T13="$(mktemp -d)"
+cp "$FIXTURES/testing-infra/task-01-test-infra.md" "$TMPDIR_T13/"
+cat > "$TMPDIR_T13/task.json" <<'JSONEOF'
+{
+  "category": "feature",
+  "tasks": [
+    "task-01-test-infra.md"
+  ]
+}
+JSONEOF
+STDOUT=$(bash "$GATE" "$FIXTURES/testing-infra/testing-infra-spec.md" "$TMPDIR_T13/" 2>/tmp/tr-stderr)
+RC=$?
+STDERR=$(cat /tmp/tr-stderr)
+rm -rf "$TMPDIR_T13"
+if [ $RC -eq 2 ] && echo "$STDERR" | grep -qi "AC-01\|implementation"; then
+  ok "feature category rejects test-only AC coverage"
+else
+  not_ok "feature category rejects test-only AC coverage" "rc=$RC stderr=$STDERR"
+fi
+
+# --- Test 14: absent category defaults to feature behavior ---
+# Use testing-infra fixtures but override task.json with category field removed.
+TMPDIR_T14="$(mktemp -d)"
+cp "$FIXTURES/testing-infra/task-01-test-infra.md" "$TMPDIR_T14/"
+cat > "$TMPDIR_T14/task.json" <<'JSONEOF'
+{
+  "tasks": [
+    "task-01-test-infra.md"
+  ]
+}
+JSONEOF
+STDOUT=$(bash "$GATE" "$FIXTURES/testing-infra/testing-infra-spec.md" "$TMPDIR_T14/" 2>/tmp/tr-stderr)
+RC=$?
+STDERR=$(cat /tmp/tr-stderr)
+rm -rf "$TMPDIR_T14"
+if [ $RC -eq 2 ] && echo "$STDERR" | grep -qi "AC-01\|implementation"; then
+  ok "absent category defaults to feature behavior and rejects test-only AC"
+else
+  not_ok "absent category defaults to feature behavior and rejects test-only AC" "rc=$RC stderr=$STDERR"
+fi
+
+# --- Test 15: unrecognized category rejected with error listing valid categories ---
+# Use corrective fixtures but override task.json with an unrecognized category.
+TMPDIR_T15="$(mktemp -d)"
+cp "$FIXTURES/corrective/task-01-test-fix.md" "$TMPDIR_T15/"
+cp "$FIXTURES/corrective/task-02-impl-fix.md" "$TMPDIR_T15/"
+cat > "$TMPDIR_T15/task.json" <<'JSONEOF'
+{
+  "category": "experimental",
+  "tasks": [
+    "task-01-test-fix.md",
+    "task-02-impl-fix.md"
+  ]
+}
+JSONEOF
+STDOUT=$(bash "$GATE" "$FIXTURES/corrective/corrective-spec.md" "$TMPDIR_T15/" 2>/tmp/tr-stderr)
+RC=$?
+STDERR=$(cat /tmp/tr-stderr)
+rm -rf "$TMPDIR_T15"
+if [ $RC -eq 2 ] && echo "$STDERR" | grep -qi "experimental\|valid categor\|corrective\|testing-infrastructure"; then
+  ok "unrecognized category rejected with error listing valid categories"
+else
+  not_ok "unrecognized category rejected with error listing valid categories" "rc=$RC stderr=$STDERR"
+fi
+
 # --- Summary ---
 rm -f /tmp/tr-stderr
 echo ""

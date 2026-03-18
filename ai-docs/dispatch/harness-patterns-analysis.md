@@ -42,6 +42,8 @@ The article found agents would mark features done without proper testing and nee
 
 **Recommendation**: Add to implementation agent instructions: before writing code, verify prerequisites compile/run and existing tests pass. This catches environment issues the dispatcher's structural checks miss (e.g., a dependency that installs but fails at runtime, a prior wave's output that compiles but doesn't behave as expected).
 
+**Implementation status**: Implemented in Phase 1.5: per-task readiness check in implementation-guide.md and codebase-grounded compilation in task-compilation.md.
+
 ### 2. Task traceability in the manifest
 
 **Finding**: The article's `claude-progress.txt` pattern solves context-window exhaustion: agents write a self-briefing document updated after each meaningful step, so the next session (or a resumed session) can pick up where it left off.
@@ -65,6 +67,8 @@ The original recommendation also included a per-step `changelog` array for mid-t
 
 **Recommendation**: The spec template's testing strategy section should require explicit decisions about test granularity — pushing toward integration/behavioral tests over isolated unit tests. The test reviewer checkpoints (Stages 3, 5, 7) should evaluate whether test granularity matches the acceptance criteria's scope. An AC about user-visible behavior needs an integration test, not a unit test on an internal function.
 
+**Implementation status**: Implemented in Phase 1.5: two-tier test reviewer enforcement model in test-reviewer.md, user verification steps and integration seam declarations in feature-spec-guide.md.
+
 ### 4. "Verify before you build" at every level
 
 **Finding**: The article's startup checklist begins with "verify fundamental features still function" before starting new work. This applies verification at session start, not just pipeline end.
@@ -73,6 +77,8 @@ The original recommendation also included a per-step `changelog` array for mid-t
 
 **Recommendation**: After Wave N completes and before Wave N+1 agents start, run the full existing test suite (not just Wave N's new tests) to confirm the repo is in a working state. If Wave N broke something, catch it before Wave N+1 agents start building on a broken foundation. This is a dispatcher-side check that strengthens the inter-wave boundary.
 
+**Implementation status**: Implemented in Phase 1.5: inter-wave baseline-snapshot regression check in implementation-guide.md.
+
 ### 5. Premature completion in agentic stages
 
 **Finding**: The article's #1 failure mode was agents declaring they were done when they weren't.
@@ -80,6 +86,8 @@ The original recommendation also included a per-step `changelog` array for mid-t
 **Gap**: Dispatch mitigates this in implementation (deterministic completion gates — referenced tests must pass), but the failure mode can still manifest in agentic stages: a review agent declaring a spec "good enough," a breakdown agent producing incomplete task coverage, or an implementation agent reporting DONE when tests pass but end-to-end behavior is broken.
 
 **Recommendation**: Treat AC coverage checks as load-bearing infrastructure, not ceremony. For agentic stages without deterministic gates (review, breakdown), consider adding a deterministic "completeness check" layer that validates structural coverage independent of the agent's self-assessment.
+
+**Implementation status**: Implemented in Phase 1.5: Tier 2 behavioral completeness 'show your work' requirement in test-reviewer.md.
 
 ## Structural divergence
 
@@ -196,11 +204,11 @@ The SDL workflow has been tested through a complete greenfield project including
 ### Improvement findings
 
 - **All bugs occurred at integration seams**: Every bug discovered in the project existed at the boundary between correctly-implemented modules — the orchestrator file that wires all modules together. Unit tests mock across these seams. The pattern is clear: the orchestrator is the highest-risk file and needs end-to-end verification, not just unit tests of individual modules.
-- **Smoke tests masquerading as behavioral tests**: The original e2e tests checked "no errors" — a negative assertion pattern that passes on a completely non-functional application. The test reviewer accepted "handled without errors" as behavioral coverage, which it isn't. The spec's non-goals conflated game logic (algorithms) with observable behavior (the application works). Four new test reviewer evaluation criteria are needed: behavioral completeness, silent failure detection, integration seam coverage, and test-level adequacy.
+- **Smoke tests masquerading as behavioral tests**: The original e2e tests checked "no errors" — a negative assertion pattern that passes on a completely non-functional application. The test reviewer accepted "handled without errors" as behavioral coverage, which it isn't. The spec's non-goals conflated game logic (algorithms) with observable behavior (the application works). Four new test reviewer evaluation criteria are needed: behavioral completeness, silent failure detection, integration seam coverage, and test-level adequacy. **Implemented in Phase 1.5**: two-tier test reviewer enforcement model and behavioral completeness 'show your work' requirement added to test-reviewer.md.
 - **Human spec review cannot be skipped**: The e2e spec was accepted without meaningful human review as a deliberate test. The downstream pipeline executed flawlessly against a flawed spec — every gate passed, every task succeeded, every test ran green. The application didn't work. This is the strongest evidence that the pipeline's quality depends on the spec, and the spec depends on human judgment.
 - **Compilation gaps between independently-compiled tasks**: A recurring pattern: tasks compiled independently make incompatible assumptions about shared interfaces — import/export conventions, module type declarations, key string conventions, and rendering path conventions. Five bugs were traced to specific tasks where a compilation gap was introduced. Improvement: task instructions should explicitly state interface contracts when a task references or creates files that other tasks depend on.
-- **Gate invariant doesn't fit all feature types**: The task reviewer requires every AC to map to both a test task and an implementation task. Testing infrastructure features (where tests are the product) and bugfix features (where tests already exist) require workarounds. Improvement: add feature type flags that relax this constraint for corrective work.
-- **Full ceremony is overhead for mechanical fixes**: A 15-line code fix went through full spec → council review → test reviewer → breakdown → team implementation in ~2 hours. An identical-class fix applied via fast-track took 15 minutes with the same output quality. The ceremony's value for mechanical fixes is concentrated in test design review, not fix design. When the root cause is known, the fix pattern is validated, and no design decisions are involved, fast-track is appropriate.
+- **Gate invariant doesn't fit all feature types**: The task reviewer requires every AC to map to both a test task and an implementation task. Testing infrastructure features (where tests are the product) and bugfix features (where tests already exist) require workarounds. Improvement: add feature type flags that relax this constraint for corrective work. **Implemented in Phase 1.5**: feature type flags added to task-reviewer gate to relax this constraint for corrective work.
+- **Full ceremony is overhead for mechanical fixes**: A 15-line code fix went through full spec → council review → test reviewer → breakdown → team implementation in ~2 hours. An identical-class fix applied via fast-track took 15 minutes with the same output quality. The ceremony's value for mechanical fixes is concentrated in test design review, not fix design. When the root cause is known, the fix pattern is validated, and no design decisions are involved, fast-track is appropriate. **Implemented in Phase 1.5**: corrective workflow formalized in corrective-workflow.md with explicit fast-track eligibility criteria.
 - **Spec precision on technical values**: Specs occasionally use conceptual shorthand for technical values (e.g., a human-readable key name vs. the actual runtime key code). One bug was directly caused by this — the spec used a conceptual key name that didn't match the runtime convention. Improvement: spec template guidance on using precise, runtime-accurate values.
 - **Undeclared file creation**: Implementation agents occasionally produce files not declared in the task breakdown when they encounter environment-specific requirements. The retrospectives capture these deviations with root cause analysis, feeding knowledge gaps back into task planning for future runs.
 
@@ -216,7 +224,7 @@ Each scenario produces retrospectives that feed the self-improvement loop. Resul
 
 ## Bug-fix workflow pattern
 
-**Status**: First cycle complete — validated against the greenfield project with all issues resolved.
+**Status**: First cycle complete — validated against the greenfield project with all issues resolved. The corrective workflow has been formalized in `home/.claude/docs/sdl-workflow/corrective-workflow.md`.
 
 ### Origin
 
@@ -253,10 +261,10 @@ The bug-fix workflow completed successfully, resolving all issues through three 
 
 ### Improvement findings from this cycle
 
-- **Test reviewer needs four new evaluation criteria**: Behavioral completeness (user-facing behaviors need tests that fail when broken, not just no-crash tests), silent failure detection (flag "no errors" as sole assertion), integration seam coverage (flag when components share mutable state with temporal ordering but no e2e test exercises the seam), and test-level adequacy (flag when all tests for browser-rendered features are mock-only).
-- **E2e test coverage needs proportional depth**: 4 smoke tests across a 10-feature application is insufficient. E2e tests should cover the primary user flow, not just verify that the page loads without console errors.
+- **Test reviewer needs four new evaluation criteria**: Behavioral completeness (user-facing behaviors need tests that fail when broken, not just no-crash tests), silent failure detection (flag "no errors" as sole assertion), integration seam coverage (flag when components share mutable state with temporal ordering but no e2e test exercises the seam), and test-level adequacy (flag when all tests for browser-rendered features are mock-only). **Implemented in Phase 1.5**: two-tier enforcement model and behavioral completeness 'show your work' requirement added to test-reviewer.md.
+- **E2e test coverage needs proportional depth**: 4 smoke tests across a 10-feature application is insufficient. E2e tests should cover the primary user flow, not just verify that the page loads without console errors. **Implemented in Phase 1.5**: user verification steps and integration seam declaration requirements added to feature-spec-guide.md.
 - **Human spec review cannot be skipped without risk**: The pipeline's automated gates cannot substitute for human judgment at the spec stage. The spec defines what the pipeline optimizes for — if the spec's framing is flawed, the pipeline optimizes for the wrong thing flawlessly.
-- **Ceremony level should match the work**: Full ceremony for new features with design decisions. Fast-track for mechanical fixes with known root causes and validated patterns. The distinction is whether the review would change the fix or only the tests.
+- **Ceremony level should match the work**: Full ceremony for new features with design decisions. Fast-track for mechanical fixes with known root causes and validated patterns. The distinction is whether the review would change the fix or only the tests. **Implemented in Phase 1.5**: corrective workflow formalized in corrective-workflow.md with explicit fast-track criteria.
 
 ## Future exploration: Troubleshooter and code review agents
 

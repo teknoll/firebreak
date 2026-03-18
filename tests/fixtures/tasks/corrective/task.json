@@ -1,0 +1,7 @@
+{
+  "category": "corrective",
+  "tasks": [
+    "task-01-test-fix.md",
+    "task-02-impl-fix.md"
+  ]
+}

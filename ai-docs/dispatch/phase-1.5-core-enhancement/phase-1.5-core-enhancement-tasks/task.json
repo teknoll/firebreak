@@ -11,8 +11,8 @@
       "covers": ["AC-08"],
       "model": "Sonnet",
       "model_rationale": "Creates test fixtures across multiple directories and modifies existing test script — requires cross-file coordination",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Created 7 fixture files (corrective: 4, testing-infra: 3) and 6 new test cases in test-task-reviewer.sh. 12/15 tests pass; 3 expected failures (Tests 10, 12, 15) await T-08 category implementation. All 9 pre-existing tests pass.",
       "note": null
     },
     {
@@ -25,8 +25,8 @@
       "covers": ["AC-01", "AC-02", "AC-03", "AC-04", "AC-05", "AC-06", "AC-07", "AC-09", "AC-10", "AC-11", "AC-12"],
       "model": "Sonnet",
       "model_rationale": "Creates structured test fixtures that must accurately represent specific deficiency patterns — requires understanding of the criteria being tested",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Created 3 fixture files: deficient-spec.md (triggers Tier 1 + Tier 2 criteria), well-formed-spec.md (passes all criteria), validation-checklist.md (maps AC-01 through AC-12 to observable verification steps with sabotage scenarios for AC-04, AC-05, AC-07, AC-11).",
       "note": null
     },
     {
@@ -39,8 +39,8 @@
       "covers": ["AC-01", "AC-02", "AC-06", "AC-11"],
       "model": "Sonnet",
       "model_rationale": "Major rewrite of agent definition with complex evaluation criteria, corrective variants, and structured output format",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Added Evaluation criteria section (Tier 1: silent failure detection; Tier 2: test-level adequacy, behavioral completeness with corrective variants, integration seam coverage, seam declaration completeness), Override mechanism section (3 rationale categories, freeform rejected), Override output format section (4 structured fields per finding), updated CP1 (all 5 criteria), CP2 (UV-step fidelity check), CP3 (Tier 1 only). Agent hit permissions; team lead executed directly.",
       "note": null
     },
     {
@@ -53,8 +53,8 @@
       "covers": ["AC-03"],
       "model": "Sonnet",
       "model_rationale": "Adds three new subsections to an existing guide with specific format requirements and examples",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Added Integration seam declaration subsection (checklist format with examples) and Runtime value precision guidance to section 4 (Technical approach). Added User verification steps subsection (action→outcome format, 3-8 target, explicit UV-to-test mapping) to section 5 (Testing strategy). Agent hit permissions; team lead executed directly.",
       "note": null
     },
     {
@@ -67,8 +67,8 @@
       "covers": ["AC-04"],
       "model": "Haiku",
       "model_rationale": "Small focused edit adding 3 bullet points to an existing table — bounded single-file task",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Expanded Architectural soundness row in SDL concerns table to include pattern consistency, integration point existence, and convention visibility verification points. Agent hit permissions; team lead executed directly.",
       "note": null
     },
     {
@@ -81,7 +81,7 @@
       "covers": ["AC-05"],
       "model": "Sonnet",
       "model_rationale": "Major additions to compilation guide including new compilation model, mismatch-resolution flow, and schema changes",
-      "status": "not_started",
+      "status": "in_progress",
       "summary": null,
       "note": null
     },
@@ -95,8 +95,8 @@
       "covers": ["AC-07", "AC-09"],
       "model": "Sonnet",
       "model_rationale": "Two new sections with specific mechanical details (4-item readiness check, baseline-snapshot model with storage format)",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Added Per-Task Readiness Check section (4 items: prior-wave files, tests compile with test-task skip, build succeeds, contract staleness check), Inter-Wave Baseline-Snapshot Regression Check section (baseline capture to JSON, inter-wave diff comparison, final full-suite verification), and explicit sequencing statement. Team lead executed directly due to agent permissions.",
       "note": null
     },
     {
@@ -109,8 +109,8 @@
       "covers": ["AC-08"],
       "model": "Sonnet",
       "model_rationale": "Modifies Python validation logic in a bash/Python gate script — requires understanding of existing validation flow",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Added task.json category reading (with VALID_CATEGORIES validation), replaced AC coverage block with category-aware logic (feature=both required, corrective/testing-infrastructure=test-only allowed), added unrecognized category rejection. 15/15 tests pass. Agent hit permissions; team lead executed directly.",
       "note": null
     },
     {
@@ -123,8 +123,8 @@
       "covers": ["AC-10"],
       "model": "Sonnet",
       "model_rationale": "Creates new workflow documentation with multiple sections, entry-point classification, and pipeline integration references",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Created corrective-workflow.md with 5 sections: Full Diagnostic Workflow (7 steps with context-independent diagnosis), Fast-Track (4 criteria + process), Escalation (re-entry point specified), Entry-Point Classification (/spec detects corrective intent, propagates workflow:corrective to breakdown/gate), Pipeline Integration (test reviewer Tier 2 guidance, gate category support, baseline snapshot exclusion). Agent hit permissions; team lead executed directly.",
       "note": null
     },
     {
@@ -137,8 +137,8 @@
       "covers": ["AC-12"],
       "model": "Sonnet",
       "model_rationale": "Requires reading multiple settings files and skill definitions, cross-referencing tool patterns against allowlist rules — analytical task",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Created permissions-audit.md with: predicted prompt map (all stages, every call uncovered due to empty allowlist), highest-frequency sources ranked (task.json status updates #1 at 12+/run, gate Bash calls #2 at 7/run), 4 encapsulation candidates identified, PreToolUse hook design specified (JSONL logger with settings.json config snippet).",
       "note": null
     },
     {
@@ -151,8 +151,8 @@
       "covers": ["AC-01", "AC-02", "AC-03", "AC-04", "AC-05", "AC-06", "AC-07", "AC-08", "AC-09", "AC-10", "AC-11", "AC-12"],
       "model": "Sonnet",
       "model_rationale": "Requires reading comprehension to match named topics to prose paragraphs in a 277-line document — not bounded enough for Haiku",
-      "status": "not_started",
-      "summary": null,
+      "status": "complete",
+      "summary": "Added Phase 1.5 implementation status cross-references to 4 actionable recommendations, bug-fix workflow status line, and 5 improvement findings. No analytical content changed. Agent executed successfully (ai-docs/ path not blocked).",
       "note": null
     }
   ]

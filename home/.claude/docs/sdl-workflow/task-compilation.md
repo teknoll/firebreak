@@ -4,6 +4,21 @@ Tasks are compiled executable specifications, not summaries. Every instruction m
 
 Choose one implementation approach during compilation. If multiple valid approaches exist, select the one most consistent with the existing codebase and spec intent. Document the choice in the task's Context section.
 
+## Codebase-Grounded Compilation
+
+Read the actual files that tasks will reference or modify during compilation — not just compiling from the spec's claims about the codebase. This applies to files that already exist at compilation time. For greenfield tasks creating new files, interface contracts are derived from the spec.
+
+When compiling interface contracts for existing files:
+- **Read the referenced file** to determine the actual convention. If the spec says "spacebar input" but the InputHandler uses `event.key` returning `' '`, the task gets `' '`.
+- **If the spec's claim doesn't match the code**, flag the mismatch. If the code is authoritative (existing convention), correct the task instruction to match the code. If the spec is authoritative (new design that intentionally changes the convention), present the mismatch to the user ("the spec says X but the code uses Y — which is correct?") and wait for resolution before continuing.
+- **For brownfield work**, read existing test files to learn testing conventions, existing modules for import/export patterns, and existing configuration for environment requirements.
+
+## Interface Contracts
+
+When a task references files created or modified by other tasks, the task instructions must specify cross-task interface contracts. At minimum: import/export convention (default vs. named), module type (ESM/CJS), key string or enum conventions used by the referenced module, and any rendering or update-loop wiring patterns the task must follow. Extend this list with any additional cross-task assumptions specific to the project's technology stack — these are a floor, not an exhaustive set.
+
+**Orchestrator tasks**: When a task modifies the orchestrator file (the file that wires all modules together), it is higher-risk and requires additional specification: an explicit wiring checklist stating what must be imported, what must be initialized, what must be updated per frame/tick, and what must be cleaned up. Orchestrator tasks are routed to Sonnet minimum (regardless of other sizing heuristics) and include the wiring checklist as a dedicated section in the task file.
+
 ## Sizing Constraints
 
 File count is the sharpest predictor of agent success. Target these constraints for each task:
@@ -84,6 +99,7 @@ Name paired tasks consistently: `task-NN-test-<behavior>.md` and `task-MM-impl-<
 ```json
 {
   "spec": "ai-docs/<feature-name>/<feature-name>-spec.md",
+  "category": "feature | corrective | testing-infrastructure",
   "tasks": [
     {
       "id": "T-NN",
@@ -108,6 +124,7 @@ Name paired tasks consistently: `task-NN-test-<behavior>.md` and `task-MM-impl-<
 | Field | Required | Description |
 |---|---|---|
 | `spec` | yes | Path to the spec this task set implements |
+| `category` | no | Feature category: `feature` (default), `corrective`, or `testing-infrastructure`. Controls which gate invariants apply. Absent = `feature`. |
 | `tasks` | yes | Array of task entries |
 | `id` | yes | Task identifier matching `T-NN` format |
 | `title` | yes | One-line description of what the task produces |

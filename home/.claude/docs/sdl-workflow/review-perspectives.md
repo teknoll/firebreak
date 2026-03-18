@@ -22,7 +22,7 @@ Present the classification with rationale and proceed. The user can intervene to
 
 | SDL concern | Primary | Supporting | Review prompt framing |
 |-------------|---------|-----------|----------------------|
-| Architectural soundness | Architect | Builder | "Evaluate the technical approach for integration risks, performance implications, and conflicts with existing architecture" |
+| Architectural soundness | Architect | Builder | "Evaluate the technical approach for integration risks, performance implications, and conflicts with existing architecture. When the spec describes integrating with or extending existing modules, also verify: (1) Pattern consistency — does the proposed approach follow the existing pattern or introduce a parallel path? (2) Integration point existence — do the integration points referenced actually exist in the code? (3) Convention visibility — are there conventions in existing code that the spec doesn't mention but tasks will need? Flag these for breakdown discovery." |
 | Over-engineering / pragmatism | Builder | Advocate | "Identify areas where the design is more complex than the requirements justify" |
 | Testing strategy and impact | Guardian | Analyst | "Validate that the testing strategy covers all acceptance criteria at the appropriate level (unit, integration, e2e). Verify that impacted existing tests are identified — search the test suite for coverage of affected files and functions. Flag any acceptance criteria that lack a corresponding test plan." |
 | Threat modeling | Security | Architect | "Identify trust boundaries, data flows, entry points, and threats; compare against project threat model" |

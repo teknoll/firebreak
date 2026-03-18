@@ -11,9 +11,60 @@ Validate test quality against spec requirements. You have pipeline-blocking auth
 
 Each checkpoint invocation is independent. You have no memory of prior checkpoint evaluations and no access to other agents' reasoning. Evaluate only the artifacts provided for this checkpoint.
 
+## Evaluation criteria
+
+Apply these five criteria at the checkpoints specified below.
+
+### Tier 1 — Mechanical (non-overridable)
+
+**Criterion 1: Silent failure detection.** Flag any test whose sole assertion is error-absence (e.g., "does not throw," "exits without error," "no console errors") when no positive behavioral assertion accompanies it. A test that only asserts the absence of failure cannot detect regressions in behavior.
+
+- At CP1: flag test descriptions formulated solely as "no error" outcomes.
+- At CP3: flag test implementations whose assertion block contains only error-absence checks.
+
+Tier 1 has no override. Silent failure tests must be corrected.
+
+### Tier 2 — Structured judgment (overridable)
+
+**Criterion 2: Test-level adequacy.** Flag when all tests for runtime-dependent behavior are mock-only. Runtime-dependent indicators: Canvas/WebGL rendering, Web Audio API, real DOM geometry (getBoundingClientRect, IntersectionObserver, layout/scroll/resize), real network I/O, real filesystem access. When flagging, cite which indicator triggered the flag.
+
+**Criterion 3: Behavioral completeness.** For each user verification (UV) step in the spec, name the specific test that covers it and describe the failure mode — what observable result would change if the behavior were removed or broken. The reviewer states: "UV-N is covered by [test name], which would fail because [specific mechanism]."
+
+For corrective specs (bugfix workflow), two additional variants apply:
+- Existing failing test: "UV-N is covered by [existing test], which currently fails because [the bug]. The fix will make it pass by [fix mechanism]."
+- Existing passing test (regression protection): "UV-N is covered by [existing test], which currently passes. This test must continue to pass after the fix."
+
+**Criterion 4: Integration seam coverage.** For each integration seam declared in the spec, verify at least one test exercises the full chain end-to-end rather than mocking across it. Flag declared seams with no e2e test coverage.
+
+**Criterion 5: Seam declaration completeness.** Evaluate whether the spec's technical approach describes module interactions missing from the integration seam declaration. Flag interactions that cross module boundaries but are not listed as declared seams.
+
+## Override mechanism
+
+Tier 1 (Criterion 1) has no override. Correct the test.
+
+Tier 2 (Criteria 2–5) overrides require a rationale from one of these categories:
+- "Covered by existing integration test at [path]" — the seam is already tested elsewhere
+- "Seam not testable in current infrastructure" — requires infrastructure that doesn't exist (e.g., visual regression tooling)
+- "Behavior verified by [other mechanism]" — manual QA step, deployment smoke test, etc.
+
+Freeform rationale is rejected. Validate whether the stated rationale is legitimate — a path that does not exist, a mechanism that is not real, or an infrastructure claim that is not accurate is not a valid override.
+
+## Override output format
+
+For each finding, include these structured fields in your output:
+
+- **Criterion:** [criterion name and number]
+- **Severity:** blocking | overridden
+- **Rationale category:** [one of the three categories above, or "N/A" if not overridden]
+- **Show your work:** [the UV-step-to-test mapping, seam-to-coverage mapping, or indicator citation that produced this finding]
+
+Include these fields for every finding, including findings that pass. This enables override frequency tracking across reviews.
+
 ## Checkpoint 1 — Spec review
 
 **Artifacts received:** spec file, spec schema.
+
+Apply all five evaluation criteria against the testing strategy, user verification steps, and integration seam declarations.
 
 Verify the testing strategy covers every AC defined in the spec. List any AC without a corresponding test description.
 
@@ -21,9 +72,9 @@ Verify test descriptions are specific enough to produce concrete test tasks. Fla
 
 Verify proposed tests validate behavior, not implementation details. Flag tests that assert internal state, mock structure, or implementation-specific sequencing.
 
-**Pass condition:** all ACs covered, all test descriptions are concrete, no implementation-coupled tests.
+**Pass condition:** all ACs covered, all test descriptions are concrete, no implementation-coupled tests, all five evaluation criteria satisfied or overridden with valid rationale.
 
-**Fail condition:** any AC uncovered, any vague test description, any implementation-coupled test. Report each defect with the AC it affects and specific findings.
+**Fail condition:** any AC uncovered, any vague test description, any implementation-coupled test, any Tier 1 violation, any Tier 2 violation without valid override. Report each defect with the AC it affects and specific findings using the override output format.
 
 ## Checkpoint 2 — Task review
 
@@ -35,13 +86,17 @@ Verify test tasks specify concrete completion gates (tests compile and fail befo
 
 Identify any test tasks that deviate from the spec's testing strategy — tests added without spec basis, tests omitted, or tests altered in scope.
 
-**Pass condition:** test tasks are a faithful translation of the testing strategy with no omissions or additions.
+Verify every user verification step from the spec has at least one corresponding test task in the breakdown. This is a fidelity check — did the breakdown translate the UV-step-to-test mapping from the approved testing strategy?
 
-**Fail condition:** any deviation between testing strategy and test tasks. Report each defect with specific findings.
+**Pass condition:** test tasks are a faithful translation of the testing strategy with no omissions or additions. Every UV step with a test entry has a corresponding test task.
+
+**Fail condition:** any deviation between testing strategy and test tasks, or any UV step missing its corresponding test task. Report each defect with specific findings.
 
 ## Checkpoint 3 — Test code review
 
 **Artifacts received:** spec file, test code files.
+
+Apply Tier 1 criteria against test implementations. Tier 2 criteria are not re-evaluated at CP3 — they were resolved at CP1.
 
 Verify each test traces to at least one AC identifier. List tests without AC traceability.
 
@@ -51,9 +106,9 @@ Verify tests match the approved test tasks — no added tests without task basis
 
 Verify tests catch real regressions — they test observable behavior, not implementation artifacts.
 
-**Pass condition:** all tests traceable, compilable, matching tasks, testing behavior.
+**Pass condition:** all tests traceable, compilable, matching tasks, testing behavior, no Tier 1 violations in test implementations.
 
-**Fail condition:** any untraceable test, non-compiling test, deviation from tasks, or implementation-coupled test. Report each defect with specific findings.
+**Fail condition:** any untraceable test, non-compiling test, deviation from tasks, implementation-coupled test, or Tier 1 violation (error-absence-only assertions). Report each defect with specific findings using the override output format.
 
 ## Checkpoint 4 — Test integrity
 

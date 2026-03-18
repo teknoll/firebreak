@@ -21,11 +21,26 @@ Write each section. Do not skip or combine sections.
 
 **4. Technical approach** — Describe architecture, data flow, and key design decisions. Be specific enough that another engineer can review it and a task compiler can derive implementation tasks without asking follow-up questions. Name the components, data stores, APIs, and integration points.
 
+- **Integration seam declaration** (required when the technical approach references multiple interacting components): Declare integration seams as a checklist. Each entry identifies two components, the shared state or interface, and the convention that must be consistent across both sides. Example:
+  > - [ ] InputHandler → WeaponSystem: key string convention (`event.key` values: `' '` for spacebar)
+  > - [ ] InvaderGrid → main.js: enemy projectile array wiring (spawn, update, collision, cleanup)
+
+  Use checklist format, not freeform prose. The test reviewer at CP1 validates that each declared seam has integration or e2e test coverage.
+
+- **Runtime value precision**: When a spec references runtime values — key codes, event names, API paths, configuration keys, enum values, string constants — use the exact runtime representation, not conceptual shorthand. Conventions that cross module boundaries should be documented once in the spec and used consistently. Example: "The InputHandler stores `event.key` values: `' '` for spacebar, `'Enter'` for enter, `'ArrowLeft'`/`'ArrowRight'` for movement."
+
 **5. Testing strategy** — Three required subsections. Generic phrases like "add unit tests" are not acceptable; fail any draft that contains them.
 
 - **New tests needed**: For each test, state what behavior it validates, at what level (unit / integration / e2e), and which AC it covers. Example: "Unit test: `parseToken()` returns null for expired JWTs — covers AC-03."
 - **Existing tests impacted**: In brownfield, search the test suite for tests that cover the files and functions this feature modifies. List each test file or test name, the affected code path, and the expected change (update assertions / fixtures / mocks). In greenfield, write: "None — no existing test suite."
 - **Test infrastructure changes**: List new fixtures, mocks, test utilities, or test data needed. In greenfield, include bootstrapping the test framework if no test infrastructure exists.
+- **User verification steps**: "How would a human verify this feature works?" Numbered steps, each following a structured **action → observable outcome** format:
+  > UV-1: Press spacebar → projectile fires and moves upward
+  > UV-2: Projectile hits invader → invader is destroyed and explosion particles appear
+
+  Typically 3-8 for user-facing features. Infrastructure or internal features may have fewer with documented rationale. If a step cannot be parsed into an action-outcome pair, the spec is not ready for review.
+
+  Each UV step maps to at least one e2e or integration test entry in "New tests needed." The mapping is explicit — each test entry references the UV step(s) it covers (e.g., "E2e test: fire projectile and verify movement — covers UV-1"). The test reviewer at CP1 validates this mapping. At CP2, the reviewer verifies the mapping survived into the task breakdown.
 
 **6. Documentation impact** — Required even when there is nothing to update.
 

@@ -1,0 +1,6 @@
+{
+  "category": "testing-infrastructure",
+  "tasks": [
+    "task-01-test-infra.md"
+  ]
+}

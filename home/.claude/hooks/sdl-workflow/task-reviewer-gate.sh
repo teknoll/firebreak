@@ -40,6 +40,15 @@ task_json = json.loads(sys.argv[3])
 # tasks_dir is like ai-docs/feature/tasks/ or tests/fixtures/tasks/valid/
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(tasks_dir)))
 
+# Read category from task.json in tasks_dir
+VALID_CATEGORIES = {"feature", "corrective", "testing-infrastructure"}
+category = "feature"
+task_json_path = os.path.join(tasks_dir, "task.json")
+if os.path.isfile(task_json_path):
+    with open(task_json_path) as _f:
+        _manifest = json.load(_f)
+    category = _manifest.get("category", "feature")
+
 failures = []
 
 # Parse YAML frontmatter from content
@@ -139,11 +148,27 @@ for fname, fm in tasks.items():
         elif task_type == 'implementation':
             impl_acs.add(str(ac))
 
-for ac in sorted(spec_acs):
-    if ac not in test_acs:
-        failures.append(f"AC coverage: {ac} not covered by any test task")
-    if ac not in impl_acs:
-        failures.append(f"AC coverage: {ac} not covered by any implementation task")
+# Validate category
+if category not in VALID_CATEGORIES:
+    failures.append(
+        f"Unrecognized category '{category}'. Valid categories: {', '.join(sorted(VALID_CATEGORIES))}"
+    )
+else:
+    for ac in sorted(spec_acs):
+        if category == "feature":
+            # Standard: every AC needs both test and implementation coverage
+            if ac not in test_acs:
+                failures.append(f"AC coverage: {ac} not covered by any test task")
+            if ac not in impl_acs:
+                failures.append(f"AC coverage: {ac} not covered by any implementation task")
+        elif category == "corrective":
+            # Corrective: test tasks can cover ACs without paired implementation
+            if ac not in test_acs and ac not in impl_acs:
+                failures.append(f"AC coverage: {ac} not covered by any test task or implementation task")
+        elif category == "testing-infrastructure":
+            # Testing infra: test tasks can satisfy ACs directly
+            if ac not in test_acs and ac not in impl_acs:
+                failures.append(f"AC coverage: {ac} not covered by any test task or implementation task")
 
 # File scope conflicts within same wave
 wave_files = {}  # wave -> {path: [task_fnames]}
