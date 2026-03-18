@@ -175,26 +175,103 @@ One avenue worth exploring: a context-independent code review agent that follows
 
 Layer 1 delivers measurable improvements now with existing infrastructure. It reduces token spend and likely improves code quality indirectly — a pipeline that produces better-scoped tasks and stronger tests is producing better code. Layer 2 adds automated quality signals without requiring human effort. Layer 3 waits until either the methodology matures or enough pipeline runs have accumulated to make longitudinal human assessment meaningful. Each layer is independently valuable and doesn't depend on the layers above it.
 
-## Early retrospective evidence
+## Retrospective evidence
 
-The SDL workflow is being tested against real projects. Each feature implementation produces a structured retrospective that captures per-task results (model, status, re-plans, declared vs. actual files), upstream traceability (which review stage caught which issues), failure attribution, and notes on unexpected behavior.
+The SDL workflow has been tested through a complete greenfield project including a corrective bug-fix cycle: 13 features (10 original + 3 corrective), ~80 tasks, 137 tests, zero formal re-plans. Each feature implementation produces a structured retrospective that captures per-task results, upstream traceability, failure attribution, and notes on unexpected behavior.
 
-### What the retrospectives show so far
+### What the retrospectives show
 
-Even in early testing, the retrospectives are generating actionable self-improvement data:
+### Validation evidence
 
-- **Repeated gate failure patterns**: Breakdown gates consistently fail for the same categories of structural issues across features. This identifies specific areas where skill instructions need reinforcement — a direct input for Layer 1's feedback loop.
-- **Test-level adequacy gaps**: The test reviewer validated AC coverage at the unit level but did not flag cases where the test *level* (unit vs. integration vs. e2e) was insufficient for the feature's runtime environment. This was identified as a systemic gap — not a single-feature oversight — and led to a specific improvement to the test reviewer's evaluation criteria. This is the "tests pass but the feature doesn't work" failure mode identified in the Anthropic harness article, caught by the retrospective process.
-- **Undeclared file creation**: Implementation agents occasionally produce files not declared in the task breakdown. The retrospectives capture these deviations with root cause analysis, feeding knowledge gaps back into task planning for future runs.
-- **Agent autonomy observations**: Implementation agents sometimes proactively execute later-wave tasks when dependency analysis permits. The retrospectives track whether these optimizations succeed or cause problems — data that will inform the lead agent design if pursued.
-- **Zero re-plans across initial features**: All tasks passed on first attempt after upstream gates (spec review, breakdown review, test review) completed their work. This is early evidence that front-loading quality into structured artifacts before implementation reduces the need for corrective iteration during implementation.
+- **Zero formal re-plans across ~80 tasks**: Every implementation task across 13 features passed on first attempt after upstream gates completed their work. Five team-lead interventions occurred (1-line fixes for import mismatches, module type declarations, and test calibration) but none required formal re-plans. This is strong evidence that front-loading quality into structured artifacts before implementation reduces the need for corrective iteration.
+- **Spec review as design improvement, not just validation**: In multiple features, the council review actively simplified designs before implementation — reducing complex subsystems to straightforward patterns by flagging over-engineered approaches, resolving ownership ambiguities, and suggesting cleaner interfaces. These simplification cascades reduced implementation complexity downstream, making agent tasks easier to execute correctly. The review is demonstrating value beyond "catching problems" — it's improving the design.
+- **Forward-referencing in specs validated across features**: Early spec reviews required specific code organization patterns (e.g., keeping related logic in cohesive blocks for future extraction). Multiple features later, those patterns enabled clean refactoring — code that was designed for future modification was successfully modified without rework. This validates brownfield-aware spec design as a practical technique, not just a principle.
+- **Model routing validated and cost-effective**: The "least capable model sufficient for the role" strategy is working. Well-specified single-file tasks reliably succeed at the cheapest model tier. Complex tasks (state machines, refactoring across multiple files, multi-system integration) route to higher-capability models and also succeed on first attempt. The routing correctly matches task complexity to model capability, saving cost on simple tasks without sacrificing quality on complex ones. Zero escalations were needed across the entire project.
+- **Test reviewer consistently adding value**: The test reviewer checkpoint caught missing integration tests in multiple features, resulting in additional test tasks being added before implementation began. Without this checkpoint, subsystem wiring would have gone untested in at least one feature. The test reviewer is the most consistently productive quality checkpoint in the pipeline.
+- **Breakdown gate stabilizing over time**: Early features required 2-3 gate attempts before passing (structural issues in task frontmatter). Later features consistently pass on first attempt, demonstrating that the workflow improves through use — either through skill instruction refinement or improved spec quality feeding better breakdowns.
+- **Backward compatibility maintained automatically**: When later features modified files created by earlier features, implementation agents preserved existing interfaces by using default parameters and maintaining test compatibility. No existing tests were modified to accommodate new functionality — the regression model worked as designed.
+- **E2E tests validating real behavior**: After the e2e testing infrastructure was added (see improvement findings below), subsequent features are confirmed working in real browser environments, not just mocked test environments. This closes the gap between "tests pass" and "feature works."
+- **Agent autonomy producing valid optimizations**: Implementation agents sometimes proactively execute later-wave tasks when dependency analysis permits, compressing the execution timeline. These optimizations have succeeded without issues so far — data that will inform the lead agent design if pursued.
+
+### Improvement findings
+
+- **All bugs occurred at integration seams**: Every bug discovered in the project existed at the boundary between correctly-implemented modules — the orchestrator file that wires all modules together. Unit tests mock across these seams. The pattern is clear: the orchestrator is the highest-risk file and needs end-to-end verification, not just unit tests of individual modules.
+- **Smoke tests masquerading as behavioral tests**: The original e2e tests checked "no errors" — a negative assertion pattern that passes on a completely non-functional application. The test reviewer accepted "handled without errors" as behavioral coverage, which it isn't. The spec's non-goals conflated game logic (algorithms) with observable behavior (the application works). Four new test reviewer evaluation criteria are needed: behavioral completeness, silent failure detection, integration seam coverage, and test-level adequacy.
+- **Human spec review cannot be skipped**: The e2e spec was accepted without meaningful human review as a deliberate test. The downstream pipeline executed flawlessly against a flawed spec — every gate passed, every task succeeded, every test ran green. The application didn't work. This is the strongest evidence that the pipeline's quality depends on the spec, and the spec depends on human judgment.
+- **Compilation gaps between independently-compiled tasks**: A recurring pattern: tasks compiled independently make incompatible assumptions about shared interfaces — import/export conventions, module type declarations, key string conventions, and rendering path conventions. Five bugs were traced to specific tasks where a compilation gap was introduced. Improvement: task instructions should explicitly state interface contracts when a task references or creates files that other tasks depend on.
+- **Gate invariant doesn't fit all feature types**: The task reviewer requires every AC to map to both a test task and an implementation task. Testing infrastructure features (where tests are the product) and bugfix features (where tests already exist) require workarounds. Improvement: add feature type flags that relax this constraint for corrective work.
+- **Full ceremony is overhead for mechanical fixes**: A 15-line code fix went through full spec → council review → test reviewer → breakdown → team implementation in ~2 hours. An identical-class fix applied via fast-track took 15 minutes with the same output quality. The ceremony's value for mechanical fixes is concentrated in test design review, not fix design. When the root cause is known, the fix pattern is validated, and no design decisions are involved, fast-track is appropriate.
+- **Spec precision on technical values**: Specs occasionally use conceptual shorthand for technical values (e.g., a human-readable key name vs. the actual runtime key code). One bug was directly caused by this — the spec used a conceptual key name that didn't match the runtime convention. Improvement: spec template guidance on using precise, runtime-accurate values.
+- **Undeclared file creation**: Implementation agents occasionally produce files not declared in the task breakdown when they encounter environment-specific requirements. The retrospectives capture these deviations with root cause analysis, feeding knowledge gaps back into task planning for future runs.
 
 ### Planned testing progression
 
 Testing is structured to progressively increase difficulty:
 
-1. **Greenfield implementation** (in progress): Build a project from scratch using the full SDL workflow. Validates the basic pipeline under ideal conditions — clear specs, no existing code to conflict with.
+1. **Greenfield implementation** (complete): Built a project from scratch using the full SDL workflow — 13 features (10 original + 3 corrective), ~80 tasks, 137 tests, zero formal re-plans. Includes a full bug-fix cycle that validated the bug-fix workflow pattern and produced the most actionable improvement data of any testing phase. Establishes baseline metrics for comparison with brownfield scenarios.
 2. **Brownfield change to a disciplined codebase**: Introduce a post-implementation feature change to the greenfield project. The change is not revealed to implementation agents during initial development — the codebase must genuinely be treated as existing code, not code pre-optimized for modification. Tests whether the brownfield mitigations (codebase survey, existing pattern identification, partial replacement detection) work when modifying pipeline-produced code.
 3. **Brownfield improvement of an undisciplined codebase**: Apply the pipeline to an existing project that was built outside the SDL workflow and suffers from known agentic coding failure modes — dead subsystems, parallel pathways, tests that pass but don't validate behavior. This is the hardest and most realistic scenario: can the pipeline produce specs that correctly identify what's broken, break down fixes that reference and consolidate existing code rather than adding more sprawl, and produce PRs that improve rather than perpetuate the mess?
 
 Each scenario produces retrospectives that feed the self-improvement loop. Results across all three will indicate where the pipeline's quality interventions hold up and where they need refinement.
+
+## Bug-fix workflow pattern
+
+**Status**: First cycle complete — validated against the greenfield project with all issues resolved.
+
+### Origin
+
+The completed greenfield project passed all 124 tests (unit + e2e) but the application didn't work correctly for a real user. Root cause: the e2e spec explicitly scoped out behavioral testing ("testing game logic belongs to unit tests"), and the test reviewer accepted this framing. Every e2e test was a smoke test (verifies no crashes) rather than a behavior test (verifies the application works). A silent failure — no errors, no exceptions — passed every automated check.
+
+This failure is significant because it validates the pipeline's core design principle by counterexample: **human spec review is the highest-leverage quality intervention**. The spec was accepted without meaningful human review as a deliberate test of what happens when the human step is skipped. The downstream pipeline executed flawlessly against a flawed spec — every gate passed, every task succeeded, every test ran green. The application didn't work.
+
+### The workflow
+
+Bug fixes enter the pipeline as a structured sequence:
+
+1. **Write behavioral e2e tests first** — define what "working" means from the user's perspective, before any debugging begins. Tests should verify real user interactions, not just the absence of errors. Writing tests first prevents the fixing agent from writing tests that validate its own fix rather than the intended behavior.
+2. **Run tests and identify failures** — the failing tests are the bug specification. Each failure is a concrete, observable deviation from intended behavior.
+3. **Root cause analysis per failure** — use a separate, context-independent agent team to identify the true root cause for each failure. The root cause agent hasn't seen the implementation agent's reasoning, so it can't inherit assumptions about why the code is correct.
+4. **Update the spec** — incorporate root cause findings into a fix specification with acceptance criteria.
+5. **Spec review** — run the normal council review process on the fix spec.
+6. **Breakdown** — compile the reviewed fix into implementation tasks.
+7. **Implement** — execute tasks through the normal workflow with verification gates, iterating until the behavioral tests pass.
+
+The key difference from a typical agent bug fix ("here's the error, fix it") is that this workflow starts with defining correct behavior (step 1), uses that definition to find what's wrong (steps 2-3), then plans the fix through quality gates (steps 4-7). The fix is constrained by a behavioral test that was written before the fix was designed — preventing the agent from "fixing" the bug by making the tests match the broken behavior.
+
+### Results from the first bug-fix cycle
+
+The bug-fix workflow completed successfully, resolving all issues through three iterative passes:
+
+1. **Behavioral e2e tests written first** — 9 tests covering the primary user flow (start game, fire weapon, destroy invaders, take damage, game over, restart). 4 of 9 failed immediately, identifying two code bugs and one test geometry issue.
+2. **Root cause analysis by context-independent agents** — two root causes identified: a wrong key string crossing a module boundary (spec used conceptual name, implementation used runtime value), and missing wiring in the orchestrator file (entities spawned but never updated).
+3. **Fix implementation through normal workflow** — both fixes applied, 12/13 tests passed. One remaining failure diagnosed as a test design issue (player geometry unreachable by enemy fire). Resolved with test helpers that position the player without bypassing game logic.
+4. **Final result**: 137 tests (112 unit + 17 e2e + 8 Python), all passing. Application fully functional.
+
+**Key finding**: All bugs existed at the seam between correctly-implemented modules. Unit tests mock across these seams. Only real browser execution with real module wiring surfaces them. The bug-fix workflow's "write behavioral tests first" step was the critical intervention — it defined "working" before any debugging began.
+
+**Fast-track validation**: A second bug of the same class (rendering coordinate transform) was fixed via fast-track in 15 minutes with identical output quality to the full-ceremony fix that took 2 hours. The fast-track was safe because the root cause, fix pattern, and test pattern were all validated by the prior full-ceremony cycle. This establishes clear criteria for when fast-track is appropriate versus when full ceremony is needed.
+
+### Improvement findings from this cycle
+
+- **Test reviewer needs four new evaluation criteria**: Behavioral completeness (user-facing behaviors need tests that fail when broken, not just no-crash tests), silent failure detection (flag "no errors" as sole assertion), integration seam coverage (flag when components share mutable state with temporal ordering but no e2e test exercises the seam), and test-level adequacy (flag when all tests for browser-rendered features are mock-only).
+- **E2e test coverage needs proportional depth**: 4 smoke tests across a 10-feature application is insufficient. E2e tests should cover the primary user flow, not just verify that the page loads without console errors.
+- **Human spec review cannot be skipped without risk**: The pipeline's automated gates cannot substitute for human judgment at the spec stage. The spec defines what the pipeline optimizes for — if the spec's framing is flawed, the pipeline optimizes for the wrong thing flawlessly.
+- **Ceremony level should match the work**: Full ceremony for new features with design decisions. Fast-track for mechanical fixes with known root causes and validated patterns. The distinction is whether the review would change the fix or only the tests.
+
+## Future exploration: Troubleshooter and code review agents
+
+**Status**: Design direction — not yet specified or implemented.
+
+### Troubleshooter agent
+
+A context-independent agent specialized in root cause analysis for existing bugs and issues. Distinct from implementation agents — the troubleshooter reads the codebase, the failing tests, and the bug description, but has no access to the original implementation agents' reasoning or the spec authoring conversation.
+
+This maps to step 3 of the bug-fix workflow. The troubleshooter's output is a structured root cause report (what's wrong, where, why, and what needs to change) that feeds into the fix spec. It does not produce fixes — it diagnoses. Separating diagnosis from repair prevents the common agentic failure mode where an agent identifies a symptom, guesses at a fix, and iterates until the error goes away without understanding the underlying cause.
+
+### Code review agent
+
+A context-independent agent that reviews completed changes and PRs before final acceptance or merge. Reviews against the spec and the produced code without access to the implementing agents' reasoning.
+
+This extends the advisory code review already present in Dispatch's Stage 9 verification. The design question is whether this agent should be advisory (output attached to PR for human review) or gate-blocking (PR cannot merge without passing review). The advisory model is safer initially — it generates quality signal data without risking false-positive blocks. If the review agent's findings consistently align with human-discovered issues over time, its authority can be elevated.
+
+Both agents follow the established pattern: context-independent, separate persona, no shared reasoning with the agents whose work they evaluate. The troubleshooter evaluates existing code to find problems; the code reviewer evaluates new code to prevent problems. Together with the test reviewer, they form a three-agent quality layer — each operating independently, each seeing only what it needs.

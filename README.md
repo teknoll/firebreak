@@ -28,6 +28,17 @@ The current friction point is permissions prompts, which are being iteratively r
 
 The project has three layers, each built using the one before it. The authoring framework produced the SDL workflow. The SDL workflow produced Dispatch's first phase. As Dispatch matures, future phases will be implemented using the updated pipeline — the process bootstraps itself up the complexity ladder.
 
+### Early results
+
+The SDL workflow has been tested through a complete greenfield project: 13 features, ~80 tasks, 137 tests, zero formal re-plans. Key findings:
+
+- **Tests are the primary quality gate — and must include user-perspective behavioral tests.** The project passed 124 unit and smoke tests but didn't work when a human tried to use it. Every bug existed at the integration seam between correctly-implemented modules — the boundaries that unit tests mock across. Only real end-to-end tests exercising the application the way a user would caught the failures. Unit tests are necessary but not sufficient.
+- **The context-independent test reviewer is the most productive quality checkpoint.** It caught missing integration tests, flagged test-level inadequacy, and identified coverage gaps before implementation began — problems that would have been expensive to find after code was written. Its independence from the implementing agents prevents the shared-blind-spot problem where agents write tests that confirm their own assumptions.
+- **Structured retrospectives enable a self-improvement loop.** Each feature produces a retrospective with per-task results, upstream traceability, and failure attribution. These identified systemic patterns (integration seam failures, compilation gaps between tasks, ceremony overhead for mechanical fixes) and generated specific improvements to pipeline skills and agent instructions. The retrospective format is now treated as a first-class pipeline artifact.
+- **Front-loading quality reduces implementation rework.** Zero formal re-plans across ~80 tasks means the upstream gates (spec review, breakdown review, test review) constrain tasks enough that agents get them right on the first try. 87% of tasks succeeded on the cheapest model tier.
+
+See [ai-docs/dispatch/harness-patterns-analysis.md](ai-docs/dispatch/harness-patterns-analysis.md) for the full analysis.
+
 ## Quick Start
 
 Copy the context assets to your Claude Code configuration:
@@ -87,10 +98,11 @@ The next evolution — an autonomous pipeline that drives specs from queue to PR
 
 Dispatch extends the SDL workflow with:
 - **10-stage pipeline** with deterministic and agentic gates at every transition
+- **Context-independent test reviewer** — a dedicated agent that validates test quality against spec requirements at five pipeline checkpoints, with no access to the implementing agents' reasoning. Early testing confirmed this is the single most productive quality checkpoint in the pipeline.
 - **Container isolation** — each implementation agent runs in an ephemeral Docker container with bubblewrap sandboxing
-- **Five-checkpoint test validation** — test strategy, test tasks, test code, test integrity, and mutation testing
 - **Context-independent agents** — test writers and implementers never share reasoning, reducing correlated failures
 - **Test file immutability** — SHA-256 hash verification prevents implementation agents from weakening tests
+- **Structured retrospectives** — each feature produces a retrospective with per-task results, upstream traceability, and failure attribution, enabling iterative improvement of pipeline skills and agent instructions
 
 See [ai-docs/dispatch/dispatch-overview.md](ai-docs/dispatch/dispatch-overview.md) for the full design.
 
