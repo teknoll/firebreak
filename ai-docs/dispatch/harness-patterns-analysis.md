@@ -266,6 +266,79 @@ The bug-fix workflow completed successfully, resolving all issues through three 
 - **Human spec review cannot be skipped without risk**: The pipeline's automated gates cannot substitute for human judgment at the spec stage. The spec defines what the pipeline optimizes for — if the spec's framing is flawed, the pipeline optimizes for the wrong thing flawlessly.
 - **Ceremony level should match the work**: Full ceremony for new features with design decisions. Fast-track for mechanical fixes with known root causes and validated patterns. The distinction is whether the review would change the fix or only the tests. **Implemented in Phase 1.5**: corrective workflow formalized in corrective-workflow.md with explicit fast-track criteria.
 
+## Phase 1.5 retrospective: brownfield feature addition
+
+**Status**: Complete. First brownfield test of the Phase 1.5 changes — a new feature added to the existing greenfield codebase.
+
+### Test parameters
+
+- **Scenario**: Brownfield feature addition to a disciplined codebase (testing progression step 2)
+- **Scope**: 1 feature, 19 tasks across 7 waves, 43 new tests (35 unit/integration + 8 e2e)
+- **Phase 1.5 changes under test**: User verification steps, integration seam declarations, UV→test mapping, two-tier test reviewer enforcement, codebase-grounded compilation, per-task readiness checks, inter-wave baseline regression, orchestrator task wiring checklists
+
+### Comparison with Phase 1.0
+
+| Metric | Phase 1.0 (Greenfield) | Phase 1.5 (Brownfield) |
+|--------|----------------------|----------------------|
+| Corrective features needed | 3 | 0 |
+| Team-lead interventions | 5 | 0 |
+| Application worked on first human test | No | Yes |
+| Integration seam bugs | 5 (found post-implementation) | 2 (caught during implementation) |
+| E2e coverage in original spec | None | 10 UV steps, 8 e2e tests |
+| Test reviewer CP failures | 0 (missed everything) | 2 FAILs with 8 total defects caught |
+| Formal re-plans | 0 (misleading — see below) | 1 |
+
+Phase 1.0's "zero re-plans" was misleading — the metric hid 5 team-lead interventions and 3 entire corrective feature cycles. Phase 1.5's single re-plan represents the system working correctly: catching bugs during implementation rather than discovering them through post-implementation human testing.
+
+### What the Phase 1.5 changes fixed
+
+**E2e coverage gap (Phase 1.0's biggest miss) — Fixed.** Phase 1.0 produced 10 feature specs with zero behavioral e2e tests. The test reviewer passed all of them. The application didn't work when a human used it. Phase 1.5 required UV steps in the spec, enforced UV→test mapping at CP1 and CP2, and required integration seam declarations. Result: 8 e2e tests in the spec from the start, catching 2 real orchestrator bugs during implementation. The application worked on first human test.
+
+**Test reviewer effectiveness — Significantly improved.** Phase 1.0's test reviewer accepted "handled without errors" as behavioral coverage and missed the entire e2e gap. Phase 1.5's test reviewer returned FAIL at both CP1 (4 defects) and CP2 (4 defects), forcing concrete UV→test mapping, removal of a conditional test escape clause, concrete speed assertions, and accurate e2e remediation steps. Each defect forced real improvements to the testing strategy.
+
+**Integration seam bugs — Same pattern, earlier detection.** Both phases produced bugs at the boundary between correctly-implemented modules in the orchestrator file. Phase 1.0 discovered them through human testing and required corrective feature cycles. Phase 1.5 discovered them through e2e tests during implementation and resolved them via re-plan. The bug pattern is inherent to orchestrator files; the improvement is in detection timing.
+
+**Orchestrator task handling — Partially improved.** Phase 1.0 gave no special treatment to orchestrator tasks. Phase 1.5 added Sonnet routing, wiring checklists, and explicit section boundaries. Wiring checklists ensured correct imports, initializations, and cleanup, but didn't prevent ordering bugs between checks in the game loop. The checklist says "what to wire" but not "in what order relative to other checks." This is a specific gap to address.
+
+### New findings unique to Phase 1.5
+
+Phase 1.5 included a post-implementation code review (two council agents reviewing all files against 10 AI coding failure modes), which Phase 1.0 did not. This revealed a quality dimension the pipeline doesn't address.
+
+**Tests that test themselves** — 3 instances where tests re-implement production logic inline and assert against their own copy. These tests can never catch regressions. The most notable: a powerup drop test that manually writes the drop conditional from the orchestrator and asserts against the local result rather than exercising the actual code path.
+
+**Copy-paste artifacts** — 2 instances where AI agents copied code blocks between similar contexts rather than extracting shared helpers. One had a quote-style inconsistency between copies (double quotes in the original, single quotes in the copy) — a telltale sign of independent generation rather than extraction.
+
+**Hardcoded coupling** — Magic numbers duplicated across files (target positions appearing in 3 locations across 2 files, hit zone dimensions hardcoded as raw numbers instead of derived from entity dimensions).
+
+**Dead code** — 1 variable declared and assigned but never read. The agent planned to use it, chose a different approach, and didn't clean up.
+
+These are code quality issues, not behavioral correctness issues. All 172 tests passed. The application worked correctly. But the code has maintainability debt that compounds over time.
+
+### Test reviewer scope gap
+
+The tests-that-test-themselves pattern traced to a specific gap in the test reviewer's scope. At CP1, the reviewer caught the most egregious version (a constant expression `expect(0.10 < 0.15).toBe(true)`). The fix replaced it with a more elaborate version that still re-implemented production logic inline — the task instruction literally said "simulate the drop logic." The test reviewer accepted the fix because the assertion was now concrete at the expression level.
+
+The structural problem survived because the test reviewer and code review operate at different scopes:
+
+- **Test reviewer (CP1/CP2)**: Reads spec and task files. Validates coverage, AC traceability, and assertion concreteness.
+- **Code review (post-implementation)**: Reads actual source code. Validates whether tests exercise production code vs reimplementing it.
+
+The test reviewer validates *what* is tested and *how concretely*. It cannot validate *whether the test calls production code or its own copy* — that requires comparing implemented test code against the production code path, which only exists after both are written. Adding "tests-that-reimplement-production-logic" as an explicit check — flagging instructions that say "simulate" or include inline conditionals mirroring production code — would partially close this gap at the task compilation level.
+
+### Implications for workflow evolution
+
+**Code review phase justified.** The post-implementation review found 14 issues that passed all automated gates. The most impactful category — tests that test their own inline logic — is a systemic AI coding failure mode that no amount of test-passing can detect. This validates adding code review as a formal stage between implementation verification and commit/merge, positioned as the third agent in the quality layer alongside the test reviewer and the (future) troubleshooter.
+
+**Orchestrator task ordering needs explicit specification.** Wiring checklists prevented missing-import and missing-initialization bugs but didn't prevent ordering bugs between checks in the game loop. Task instructions for orchestrator files should specify ordering constraints ("this check must run before that check") when the ordering affects correctness.
+
+**Discretionary structuring produces duplication.** When task instructions allowed implementer discretion on helper extraction, the agents chose to copy-paste instead of extract. Prescribing shared helpers for known-duplicated blocks (or flagging the duplication risk in task instructions) would prevent this without over-constraining.
+
+### Testing progression status
+
+1. **Greenfield implementation** (complete): 13 features, ~80 tasks, 137 tests. Established baseline. Identified e2e gap, integration seam pattern, and ceremony calibration needs.
+2. **Brownfield change to a disciplined codebase** (complete): 1 feature, 19 tasks, 43 new tests. Validated Phase 1.5 fixes for behavioral correctness. Revealed code quality dimension and test reviewer scope gap. Justified code review phase.
+3. **Brownfield improvement of an undisciplined codebase**: Not yet attempted. The hardest scenario — applying the pipeline to code built outside the workflow with existing agentic failure modes.
+
 ## Future exploration: Troubleshooter and code review agents
 
 **Status**: Design direction — not yet specified or implemented.
