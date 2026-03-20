@@ -243,8 +243,8 @@ Sycophantic behavior in 58.19% of cases. Coding assistants enthusiastically vali
 
 ### Test adequacy blind spot
 
-LLM-generated tests: 100% line/branch coverage, 4% mutation score. 100% coverage, 96% of potential bugs undetected. Meta's approach: mutation-guided LLM test generation targeting surviving mutants — engineers accepted 73%.
-> [arXiv: LLM-based test generation](https://arxiv.org/pdf/2601.09695) | [Meta: Mutation-Guided LLM Testing](https://arxiv.org/html/2501.12862v1)
+In the worst documented case, LLM-generated tests achieved 100% line/branch coverage on a single HumanEval-Java function while scoring only 4% on mutation testing — passing all coverage checks while missing 96% of injected faults. This is a single-case extreme, not a dataset-wide average; broader studies show higher mutation scores for LLM-generated tests. But the pattern is consistent: coverage metrics alone are unreliable indicators of test quality. Meta's approach: mutation-guided LLM test generation targeting surviving mutants — engineers accepted 73%.
+> [arXiv:2506.02954: Mutation-Guided Unit Test Generation](https://arxiv.org/abs/2506.02954) (100%/4% single-case finding) | [Meta: Mutation-Guided LLM Testing](https://arxiv.org/html/2501.12862v1) (73% acceptance rate)
 
 ### Security gaps
 
@@ -395,7 +395,9 @@ Anthropic identifies 9 skill categories from internal use. The most relevant:
 
 Non-exempted paths (always prompt): `.claude/docs/`, `.claude/hooks/`, `.claude/settings.json`, `.claude/CLAUDE.md`.
 
-This explains the Phase 1.5 failure pattern: the project's `home/dot-claude/docs/` and `home/dot-claude/hooks/` template paths triggered the `.claude/` protection because it matches on the path segment, regardless of semantic context (template directory vs actual config).
+This explained the Phase 1.5 failure pattern: the project's template paths at `home/.claude/` triggered the `.claude/` protection because it matches on the path segment, regardless of semantic context (template directory vs actual config).
+
+**Status: resolved.** The template directory was renamed to `home/dot-claude/` to avoid the path-segment match. This should eliminate the subagent permission blocker. Validation pending on next pipeline run with subagents targeting `home/dot-claude/` paths.
 
 ### Subagent permission inheritance
 
@@ -440,13 +442,13 @@ Known issues:
 
 Both GSD-2 and BMAD default to `--dangerously-skip-permissions` for autonomous operation. Granular permission control without bypass mode is technically possible but is not a well-trodden path. Firebreak operating with permission safety intact is ahead of the ecosystem on this axis.
 
-### Mitigation options for Firebreak
+### Mitigation status
 
-1. **Rename template directory**: `home/dot-claude/` → `home/claude-home/` (or similar) to avoid the `.claude/` path-segment match. Simplest fix for the Phase 1.5 failure pattern.
-2. **Use exempted subdirectories**: Files conceptually belonging to agents, skills, or commands can be placed in those exempted paths.
-3. **`acceptEdits` baseline**: Configure as the default permission mode for dispatch execution. Eliminates file edit prompts without full bypass.
-4. **PreToolUse hook for Bash**: Auto-approve safe Bash patterns, deny destructive ones, with full argument inspection.
-5. **Accept the constraint**: For `home/dot-claude/docs/` and `home/dot-claude/hooks/` template edits, execute in the main agent context rather than as subagents. Acknowledges that context asset editing has a fundamentally different execution profile than code editing.
+1. **Rename template directory**: **SHIPPED.** `home/.claude/` renamed to `home/dot-claude/` to avoid the `.claude/` path-segment match. Awaiting validation on next pipeline run.
+2. **Use exempted subdirectories**: Available if needed. `.claude/agents/`, `.claude/skills/`, `.claude/commands/` are writable even in bypass mode.
+3. **`acceptEdits` on-demand hook**: **Future feature.** The `/implement` skill could register an on-demand hook that activates `acceptEdits` for the session during implementation, returning to default mode for interactive work. Anthropic's `/careful` skill demonstrates this pattern. Claude Code supports session-scoped mode changes via hook stdout JSON with `setMode` entry. Implementation deferred until the rename's effectiveness is validated.
+4. **PreToolUse hook for Bash**: Available as a future refinement. Auto-approve safe Bash patterns, deny destructive ones, with full argument inspection.
+5. **Accept the constraint**: Fallback if the rename proves insufficient — execute context asset editing tasks in the main agent context rather than as subagents.
 
 ### Sources
 
@@ -568,7 +570,7 @@ A 6-agent council review (Architect, Builder, Guardian, Security, Advocate, Anal
 - Cleanup should ship as a standalone `/audit` skill first, before the full remediation workflow
 - Behavioral comparison accuracy at module-level is an untested extrapolation of function-level results — treat as hypothesis, validate with a degradation curve test (function → class → module → cross-module)
 - v1 should be suggestion-only (generate findings, don't auto-apply)
-- The 100%/4% mutation score citation in this document is misattributed — the actual source is arXiv:2506.02954 and describes a single worst-case example, not a dataset-wide average. The conclusion (mutation testing is valuable) holds but the evidence is overstated.
+- The 100%/4% mutation score citation was misattributed and overstated — corrected to cite the actual source (arXiv:2506.02954) and reframed as a single worst-case example, not a dataset-wide average.
 - Multi-agent adversarial architecture is the validated target but premature for v1
 
 ### Open questions (reduced from 10 to 5 after reframe and council review)
